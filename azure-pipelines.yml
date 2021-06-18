@@ -1,0 +1,54 @@
+# ASP.NET Core
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+  demands:
+  - msbuild
+  - visualstudio
+  - vstest
+
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+# Nuget Tool Installer Task
+- task: NuGetToolInstaller@1
+  displayName: 'Use NuGet 5.5.1'
+  inputs:
+    versionSpec: 5.5.1      
+# Nuget Restore Task
+- task: NuGetCommand@2
+  displayName: 'NuGet restore'
+  inputs:
+    restoreSolution: '**/tailspintoysweb.csproj'
+
+# Node.js Tool Installer Task
+# Finds or downloads and caches the specified version spec of Node.js and adds it to the PATH
+- task: NodeTool@0
+  inputs:
+    versionSpec: '12.x' 
+
+# Build Task  
+- task: DotNetCoreCLI@2
+  displayName: 'Build solution'
+  inputs:
+    command: publish
+    publishWebProjects: True
+    arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'  
+    zipAfterPublish: true
+
+# Publish Task
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact'
+  inputs:
+    PathtoPublish: '$(build.artifactstagingdirectory)'
+    ArtifactName: 'drop'
+  condition: succeededOrFailed()
+
